@@ -32,14 +32,15 @@ class CMakeCPPBuilder(object):
         self.setup_logger()
         try:
             self.parse_args(args = args)
-            if 'Windows' == platform.system():
+            self.build_platform = platform.system()
+            if 'Windows' == self.build_platform:
                 self.configure_build_win()
                 self.start_build_win()
-                self.resotre_env_win()
-            elif 'Linux' == platform.system():
+                self.resotre_env()
+            elif 'Linux' == self.build_platform:
                 self.configure_build_lin()
                 self.start_build_lin()
-                self.resotre_env_lin()
+                self.resotre_env()
         except Exception as err:
             self.logger.info('##############################################################################################')
             self.logger.info('# failed')
@@ -69,15 +70,34 @@ class CMakeCPPBuilder(object):
 
         # arguments
         parser.add_argument('--verbose', '-vv', help='increase log verbose level', default=False, action='store_true')
+        parser.add_argument('--debug', '--Debug', help='build Debug target', default=False, action='store_true')
+        parser.add_argument('--release-with-debug-info', '--relwithdebinfo', '--RelWithDebInfo',  help='build RelWithDebInfo target', default=False, action='store_true')
+        parser.add_argument('--release-minimum-size', '--relminsize', '--RelMinSize', help='build RelMinSize target', default=False, action='store_true')
+        parser.add_argument('--no-clean', help='do not clean build directory after build is done, if you need to clean target, pass clean as a target', default=False, action='store_true')
+        parser.add_argument('--rebuild', help='clean build directory before start build', default=False, action='store_true')
+        parser.add_argument('--docker-toolchain-image', help='build with docker toolchain, specify corresponding docker image of toolchain', default=None)
         parser.add_argument('targets', help='tagets to build', default=[], nargs='*')
         
-        # parse && make configurations in self
+        # parse
         arguments = parser.parse_args(args=args)
+        
+        # validate
+        n_build_type_flags = 0
+        n_build_type_flags += 1 if arguments.debug else 0
+        n_build_type_flags += 1 if arguments.release_with_debug_info else 0
+        n_build_type_flags += 1 if arguments.release_minimum_size else 0
+        if n_build_type_flags > 1:
+            raise Exception('too many build flags are set')
+        
+        # apply configurations
         self.targets = arguments.targets
-        if arguments.verbose:
-            self.logger.level = logging.DEBUG
-        else:
-            self.logger.level = logging.INFO
+        self.logger.level = logging.DEBUG if arguments.verbose else logging.INFO
+        self.build_type = 'Debug' if arguments.debug else 'Release' # Release Debug RelWithDebInfo RelMinSize
+        self.build_type = 'RelWithDebInfo' if arguments.release_with_debug_info else self.build_type
+        self.build_type = 'RelMinSize' if arguments.release_minimum_size else self.build_type
+        self.clean_before_build = arguments.rebuild # cleanup build directory before start build
+        self.clean_after_build = not arguments.no_clean # cleanup build directory after done build
+        self.docker_toolchain_image = arguments.docker_toolchain_image # if specified, docker toolchain will be used as build toolchain
         
     ##############################################################################################
     # windows build procedure
@@ -86,11 +106,6 @@ class CMakeCPPBuilder(object):
         '''
         entry for configuration build for windows, make changes if needed
         '''
-        self.clean_before_build = False # cleanup build directory before start build
-        self.clean_after_build = True # cleanup build directory after done build
-        self.use_docker_build_toolchain = False
-        self.build_type = 'Release' # Release Debug RelWithDebInfo RelMinSize
-        self.build_platform = platform.system()
         self.host_architecture = platform.machine()
         self.target_architecture = 'x64' # 'x64' 'ARM'
         self.shell_command_shell_flag = True
@@ -98,7 +113,7 @@ class CMakeCPPBuilder(object):
         self.msvc_community = True
         self.build_tool = 'Visual Studio' # 'Visual Studio' 'ninja' 'nmake'
         self.build_dir = os.path.join(self.source_dir, 'build_win')
-        self.build_method = 'Rebuild' # 'Rebuild' 'Build'
+        self.build_method = 'Build' # 'Rebuild' 'Build'
         self.path_split = ';'
         if 'ninja' == self.build_tool:
             self.logger.error('[ERROR] ninja build system for windows not ready yet'); self.build_state = 'failed'; return
@@ -247,12 +262,6 @@ class CMakeCPPBuilder(object):
         self.logger.info('##############################################################################################')
         self.logger.info('done building at {}'.format(self.get_time_stamp()))
         
-    def resotre_env_win(self):
-        os.chdir(self.source_dir)
-        if self.clean_after_build:
-            shutil.rmtree(self.build_dir)
-        pass
-        
     ##############################################################################################
     # linux build procedure
     ##############################################################################################
@@ -260,11 +269,6 @@ class CMakeCPPBuilder(object):
         '''
         entry for configuration build for linux, make changes if needed
         '''
-        self.clean_before_build = True
-        self.clean_after_build = True
-        self.use_docker_build_toolchain = False
-        self.build_type = 'Release' # Release Debug RelWithDebInfo RelMinSize
-        self.build_platform = platform.system()
         self.target_architecture = 'x64'
         self.shell_command_shell_flag = False
         self.build_tool = 'make' # 'ninja' 'make'
@@ -317,12 +321,6 @@ class CMakeCPPBuilder(object):
         self.logger.info('# summery')
         self.logger.info('##############################################################################################')
         self.logger.info('done building at {}'.format(self.get_time_stamp()))
-                
-    def resotre_env_lin(self):
-        os.chdir(self.source_dir)
-        if self.clean_after_build:
-            shutil.rmtree(self.build_dir)
-        pass
         
     ##############################################################################################
     # utilities
@@ -347,6 +345,11 @@ class CMakeCPPBuilder(object):
             if to_show:
                 self.logger.debug('  {} : {}'.format(attr, val))
                 
+    def resotre_env(self):
+        os.chdir(self.source_dir)
+        if self.clean_after_build:
+            shutil.rmtree(self.build_dir)
+        
     def run_shell_command(self, command):
         self.logger.info('executing {}'.format(command))
         p = subprocess.Popen(command, \
