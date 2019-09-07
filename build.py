@@ -90,27 +90,27 @@ class CMakeCPPBuilder(object):
         self.clean_after_build = True # cleanup build directory after done build
         self.use_docker_build_toolchain = False
         self.build_type = 'Release' # Release Debug RelWithDebInfo RelMinSize
-        self.build_platform = 'Windows'
+        self.build_platform = platform.system()
         self.host_architecture = platform.machine()
         self.target_architecture = 'x64' # 'x64' 'ARM'
         self.shell_command_shell_flag = True
         self.msvc_ver = 2019 # 2012 2015 2017 2019
         self.msvc_community = True
-        self.msvc_build_tool = 'Visual Studio' # 'Visual Studio' 'ninja' 'nmake'
+        self.build_tool = 'Visual Studio' # 'Visual Studio' 'ninja' 'nmake'
         self.build_dir = os.path.join(self.source_dir, 'build_win')
         self.build_method = 'Rebuild' # 'Rebuild' 'Build'
         self.path_split = ';'
-        if 'ninja' == self.msvc_build_tool:
+        if 'ninja' == self.build_tool:
             self.logger.error('[ERROR] ninja build system for windows not ready yet'); self.build_state = 'failed'; return
             self.cmake_gen_target = 'Ninja'
             self.ninja_binary_path = 'F:/Develop/ninja/ninja.exe'
             self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_MAKE_PROGRAM='+self.ninja_binary_path, \
                 '-DCC=cl.exe', '-DCXX=cl.exe', self.source_dir]
-        elif 'nmake' == self.msvc_build_tool:
+        elif 'nmake' == self.build_tool:
             self.logger.error('[ERROR] nmake build system for windows not ready yet'); self.build_state = 'failed'; return
             self.cmake_gen_target = 'NMake Makefiles'
             self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
-        elif 'Visual Studio' == self.msvc_build_tool:
+        elif 'Visual Studio' == self.build_tool:
             # determine architercture parameter for vcvarsall.bat script && cmake -G option, we do not support x86 host architecture
             # see more info at https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019
             if 'x64' == self.target_architecture:
@@ -136,8 +136,8 @@ class CMakeCPPBuilder(object):
                 self.logger.error('[ERROR] Visual Studio {} not supported yet'.format(self.msvc_ver))
                 raise Exception('Visual Studio {} not supported'.format(self.msvc_ver))
         else:
-            self.logger.error('[ERROR] unknown build tool {}'.format(self.msvc_build_tool))
-            raise Exception('build tool {} not supported'.format(self.msvc_build_tool))
+            self.logger.error('[ERROR] unknown build tool {}'.format(self.build_tool))
+            raise Exception('build tool {} not supported'.format(self.build_tool))
         
     def start_build_win(self):
         '''
@@ -161,7 +161,7 @@ class CMakeCPPBuilder(object):
         self.logger.info('##############################################################################################')
         stdout, stderr = self.run_shell_command(self.cmake_command)
         if len(stderr) > 1:
-            return
+            raise Exception('running cmake error')
         # find c compiler from cmake log
         c_compiler_matchs = re.findall(r'Check for working C compiler: ([:/.()\w\s]+)\n', stdout)
         if len(c_compiler_matchs) == 0:
@@ -240,6 +240,8 @@ class CMakeCPPBuilder(object):
             self.logger.info('# building target {}'.format(solution_name))
             self.logger.info('##############################################################################################')
             _, stderr = self.run_shell_command( self.make_command_gen( solution_name = solution_name ) )
+            if len(stderr) > 1:
+                raise Exception('build error')
         self.logger.info('##############################################################################################')
         self.logger.info('# summery')
         self.logger.info('##############################################################################################')
@@ -259,14 +261,25 @@ class CMakeCPPBuilder(object):
         entry for configuration build for linux, make changes if needed
         '''
         self.clean_before_build = True
+        self.clean_after_build = True
         self.use_docker_build_toolchain = False
         self.build_type = 'Release' # Release Debug RelWithDebInfo RelMinSize
-        self.build_platform = 'Linux'
-        self.target_architecture = 'x64' 
+        self.build_platform = platform.system()
+        self.target_architecture = 'x64'
         self.shell_command_shell_flag = False
+        self.build_tool = 'make' # 'ninja' 'make'
         self.build_dir = os.path.join(self.source_dir, 'build_lin')
-        self.cmake_gen_target = 'Ninja'
-        self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+        if 'ninja' == self.build_tool:
+            self.cmake_gen_target = 'Ninja'
+            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+            self.make_command = ['ninja']
+        elif 'make' == self.build_tool:
+            self.cmake_gen_target = 'Unix Makefiles'
+            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+            self.make_command = ['make']
+        else:
+            self.logger.error('[ERROR] unknown build tool {}'.format(self.build_tool))
+            raise Exception('build tool {} not supported'.format(self.build_tool))
         self.path_split = ':'
         
     def start_build_lin(self):
@@ -283,12 +296,32 @@ class CMakeCPPBuilder(object):
         os.chdir(self.build_dir)
         if os.path.exists('CMakeCache.txt'):
             os.remove('CMakeCache.txt')
-        self.run_shell_command(self.cmake_command)
-        self.run_shell_command(self.make_command)
+        # run cmake
+        self.logger.info('##############################################################################################')
+        self.logger.info('# running cmake')
+        self.logger.info('##############################################################################################')
+        _, stderr = self.run_shell_command(self.cmake_command)
+        if len(stderr) > 1:
+            raise Exception('running cmake error')
+        # build targets
+        self.logger.info('##############################################################################################')
+        self.logger.info('# builiding targets {}'.format(self.targets))
+        self.logger.info('##############################################################################################')
+        make_command = copy(self.make_command)
+        make_command.extend(self.targets)
+        _, stderr = self.run_shell_command(make_command)
+        if len(stderr) > 1:
+            raise Exception('build error')
+        # summery
+        self.logger.info('##############################################################################################')
+        self.logger.info('# summery')
+        self.logger.info('##############################################################################################')
         self.logger.info('done building at {}'.format(self.get_time_stamp()))
                 
     def resotre_env_lin(self):
         os.chdir(self.source_dir)
+        if self.clean_after_build:
+            shutil.rmtree(self.build_dir)
         pass
         
     ##############################################################################################
