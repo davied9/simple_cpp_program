@@ -115,17 +115,7 @@ class CMakeCPPBuilder(object):
         self.build_dir = os.path.join(self.source_dir, 'build_win')
         self.build_method = 'Build' # 'Rebuild' 'Build'
         self.path_split = ';'
-        if 'ninja' == self.build_tool:
-            self.logger.error('[ERROR] ninja build system for windows not ready yet'); self.build_state = 'failed'; return
-            self.cmake_gen_target = 'Ninja'
-            self.ninja_binary_path = 'F:/Develop/ninja/ninja.exe'
-            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_MAKE_PROGRAM='+self.ninja_binary_path, \
-                '-DCC=cl.exe', '-DCXX=cl.exe', self.source_dir]
-        elif 'nmake' == self.build_tool:
-            self.logger.error('[ERROR] nmake build system for windows not ready yet'); self.build_state = 'failed'; return
-            self.cmake_gen_target = 'NMake Makefiles'
-            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
-        elif 'Visual Studio' == self.build_tool:
+        if 'Visual Studio' == self.build_tool:
             # determine architercture parameter for vcvarsall.bat script && cmake -G option, we do not support x86 host architecture
             # see more info at https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019
             if 'x64' == self.target_architecture:
