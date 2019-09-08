@@ -264,11 +264,11 @@ class CMakeCPPBuilder(object):
         self.build_dir = os.path.join(self.source_dir, 'build_lin')
         if 'ninja' == self.build_tool:
             self.cmake_gen_target = 'Ninja'
-            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_BUILD_TYPE='+self.build_type, self.source_dir]
             self.make_command = ['ninja']
         elif 'make' == self.build_tool:
             self.cmake_gen_target = 'Unix Makefiles'
-            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_BUILD_TYPE='+self.build_type, self.source_dir]
             self.make_command = ['make']
         else:
             self.logger.error('[ERROR] unknown build tool {}'.format(self.build_tool))
