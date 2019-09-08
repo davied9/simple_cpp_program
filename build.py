@@ -229,11 +229,14 @@ class CMakeCPPBuilder(object):
             targets = [t.lower() for t in self.targets]
             if 'all' in targets:
                 self.solution_names.append(solution_name)
+                targets.remove('all')
             for target in targets:
                 if os.path.exists(target + '.vcproj'):
                     self.solution_names.append(target + '.vcproj')
+                    self.logger.info('Solution located {}'.format(self.solution_names[-1]))
                 elif os.path.exists(target + '.vcxproj'):
                     self.solution_names.append(target + '.vcxproj')
+                    self.logger.info('Solution located {}'.format(self.solution_names[-1]))
                 else:
                     self.logger.error('[ERROR] target {} not found in build dir {}'.format(target, self.build_dir))
                     raise Exception('target {} not found'.format(target))
