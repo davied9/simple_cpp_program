@@ -50,7 +50,6 @@ class CMakeCPPBuilder(object):
             self.logger.error('exit at {}'.format(self.get_time_stamp()))
             
     def parse_args(self, args = None):
-        if not args: return
         from argparse import ArgumentParser
         from argparse import RawTextHelpFormatter
 
