@@ -12,7 +12,7 @@ class ASimpleNameSpace(object):
         attrs = dir(self)
         for a in attrs:
             if not a.startswith('_'):
-                d[a] = eval('self.{}'.format(a))
+                d[a] = eval('self.{0}'.format(a))
         return json.dumps(d, indent=4)
 
 
@@ -45,9 +45,9 @@ class CMakeCPPBuilder(object):
             self.logger.info('# failed')
             self.logger.info('##############################################################################################')
             traceback.print_exception(exc_type, exc_value, exc_traceback, file=self.logger)
-            self.logger.error('[ERROR] failed building {} due to error above'.format(self.source_dir))
-            self.logger.error('see more in log file {}'.format(self.logger.handlers[1].stream.name))
-            self.logger.error('exit at {}'.format(self.get_time_stamp()))
+            self.logger.error('[ERROR] failed building {0} due to error above'.format(self.source_dir))
+            self.logger.error('see more in log file {0}'.format(self.logger.handlers[1].stream.name))
+            self.logger.error('exit at {0}'.format(self.get_time_stamp()))
             
     def parse_args(self, args = None):
         from argparse import ArgumentParser
@@ -122,10 +122,10 @@ class CMakeCPPBuilder(object):
                 if 'AMD64' == self.host_architecture:
                     vcvarsall_arch_param = 'x64'
                 else:
-                    self.logger.error('[ERROR] host architecture {} not supported yet'.format(self.target_architecture))
+                    self.logger.error('[ERROR] host architecture {0} not supported yet'.format(self.target_architecture))
                     raise Exception('host architecture not supported')
             else:
-                self.logger.error('[ERROR] target_architecture {} not supported yet'.format(self.target_architecture))
+                self.logger.error('[ERROR] target_architecture {0} not supported yet'.format(self.target_architecture))
                 raise Exception('target architecture not supported')
             # build configurations
             if self.msvc_ver == 2019:
@@ -137,18 +137,18 @@ class CMakeCPPBuilder(object):
                 self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
                 self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, '&&', 'msbuild', solution_name, '-t:'+self.build_method, '-p:Configuration='+self.build_type]
             else:
-                self.logger.error('[ERROR] Visual Studio {} not supported yet'.format(self.msvc_ver))
-                raise Exception('Visual Studio {} not supported'.format(self.msvc_ver))
+                self.logger.error('[ERROR] Visual Studio {0} not supported yet'.format(self.msvc_ver))
+                raise Exception('Visual Studio {0} not supported'.format(self.msvc_ver))
         else:
-            self.logger.error('[ERROR] unknown build tool {}'.format(self.build_tool))
-            raise Exception('build tool {} not supported'.format(self.build_tool))
+            self.logger.error('[ERROR] unknown build tool {0}'.format(self.build_tool))
+            raise Exception('build tool {0} not supported'.format(self.build_tool))
         
     def start_build_win(self):
         '''
         entry for build program
         '''
         self.log_build_configuration()
-        self.logger.info('start building at {}'.format(self.get_time_stamp()))
+        self.logger.info('start building at {0}'.format(self.get_time_stamp()))
         if self.clean_before_build:
             if os.path.exists(self.build_dir):
                 self.logger.info('removing ' + self.build_dir)
@@ -172,14 +172,14 @@ class CMakeCPPBuilder(object):
             self.logger.error('[ERROR] c compiler not found')
             raise Exception('c compiler not found')
         self.c_compiler = c_compiler_matchs[0]
-        self.logger.info('C compiler : {}'.format(self.c_compiler))
+        self.logger.info('C compiler : {0}'.format(self.c_compiler))
         # find cxx compiler from cmake log
         cxx_compiler_matchs = re.findall(r'Check for working CXX compiler: ([:/.()\w\s]+)\n', stdout)
         if len(c_compiler_matchs) == 0:
             self.logger.error('[ERROR] cxx compiler not found')
             raise Exception('cxx compiler not found')
         self.cxx_compiler = cxx_compiler_matchs[0]
-        self.logger.info('CXX compiler : {}'.format(self.cxx_compiler))
+        self.logger.info('CXX compiler : {0}'.format(self.cxx_compiler))
         # validate compilers
         c_compiler_dir = os.path.dirname(self.c_compiler)
         cxx_compiler_dir = os.path.dirname(self.cxx_compiler)
@@ -191,10 +191,10 @@ class CMakeCPPBuilder(object):
         while 'Tools' != base and '' != dir and ':/' != dir[1:]:
             dir, base = os.path.split(dir)
         if 'Tools' != base:
-            self.logger.error('[ERROR] Tool dir in cxx_compiler_dir {} not found, maybe Visual Studio installation path tree changed ?'.format(cxx_compiler_dir))
+            self.logger.error('[ERROR] Tool dir in cxx_compiler_dir {0} not found, maybe Visual Studio installation path tree changed ?'.format(cxx_compiler_dir))
             raise Exception('Tool dir in cxx_compiler_dir not found')
         self.auxilary_tool_dir = os.path.join(dir, 'Auxiliary', 'Build')
-        self.logger.info('Auxilary tool path : {}'.format(self.auxilary_tool_dir))
+        self.logger.info('Auxilary tool path : {0}'.format(self.auxilary_tool_dir))
         # guess solution name
         solution_name = None
         # 1 walk through build dir, find only .sln file
@@ -206,18 +206,18 @@ class CMakeCPPBuilder(object):
             break
         if len(sln_files) == 1:
             solution_name = sln_files[0]
-            self.logger.info('Solution located {}'.format(solution_name))
+            self.logger.info('Solution located {0}'.format(solution_name))
         elif len(sln_files) > 1:
             self.logger.warning('multiple *.sln files located, all not used')
             for sln_file in sln_files:
-                self.logger.info('    {}'.format(sln_file))
+                self.logger.info('    {0}'.format(sln_file))
         # 2 read from cmake log
         if not solution_name:
             self.logger.warning('trying to match PROJECT_NAME in cmake log')
             solution_name_matchs = re.findall(r'PROJECT_NAME = (\w+)\n', stdout, flags = re.IGNORECASE)
             if len(solution_name_matchs) == 1:
                 solution_name = solution_name_matchs[0] + '.sln'
-                self.logger.info('Solution located {}'.format(solution_name))
+                self.logger.info('Solution located {0}'.format(solution_name))
         if not solution_name:
             self.logger.error('[ERROR] solution name not found');
             raise Exception('solution name not found')
@@ -233,18 +233,18 @@ class CMakeCPPBuilder(object):
             for target in targets:
                 if os.path.exists(target + '.vcproj'):
                     self.solution_names.append(target + '.vcproj')
-                    self.logger.info('Solution located {}'.format(self.solution_names[-1]))
+                    self.logger.info('Solution located {0}'.format(self.solution_names[-1]))
                 elif os.path.exists(target + '.vcxproj'):
                     self.solution_names.append(target + '.vcxproj')
-                    self.logger.info('Solution located {}'.format(self.solution_names[-1]))
+                    self.logger.info('Solution located {0}'.format(self.solution_names[-1]))
                 else:
-                    self.logger.error('[ERROR] target {} not found in build dir {}'.format(target, self.build_dir))
-                    raise Exception('target {} not found'.format(target))
+                    self.logger.error('[ERROR] target {0} not found in build dir {1}'.format(target, self.build_dir))
+                    raise Exception('target {0} not found'.format(target))
         # run make command
         self.add_path_to_env(self.auxilary_tool_dir)
         for solution_name in self.solution_names:
             self.logger.info('##############################################################################################')
-            self.logger.info('# building target {}'.format(solution_name))
+            self.logger.info('# building target {0}'.format(solution_name))
             self.logger.info('##############################################################################################')
             _, stderr = self.run_shell_command( self.make_command_gen( solution_name = solution_name ) )
             if len(stderr) > 1:
@@ -252,7 +252,7 @@ class CMakeCPPBuilder(object):
         self.logger.info('##############################################################################################')
         self.logger.info('# summery')
         self.logger.info('##############################################################################################')
-        self.logger.info('done building at {}'.format(self.get_time_stamp()))
+        self.logger.info('done building at {0}'.format(self.get_time_stamp()))
         
     ##############################################################################################
     # linux build procedure
@@ -274,8 +274,8 @@ class CMakeCPPBuilder(object):
             self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_BUILD_TYPE='+self.build_type, self.source_dir]
             self.make_command = ['make']
         else:
-            self.logger.error('[ERROR] unknown build tool {}'.format(self.build_tool))
-            raise Exception('build tool {} not supported'.format(self.build_tool))
+            self.logger.error('[ERROR] unknown build tool {0}'.format(self.build_tool))
+            raise Exception('build tool {0} not supported'.format(self.build_tool))
         self.path_split = ':'
         
     def start_build_lin(self):
@@ -283,7 +283,7 @@ class CMakeCPPBuilder(object):
         entry for build program
         '''
         self.log_build_configuration()
-        self.logger.info('start building at {}'.format(self.get_time_stamp()))
+        self.logger.info('start building at {0}'.format(self.get_time_stamp()))
         if self.clean_before_build:
             if os.path.exists(self.build_dir):
                 shutil.rmtree(self.build_dir)
@@ -301,7 +301,7 @@ class CMakeCPPBuilder(object):
             raise Exception('running cmake error')
         # build targets
         self.logger.info('##############################################################################################')
-        self.logger.info('# builiding targets {}'.format(self.targets))
+        self.logger.info('# builiding targets {0}'.format(self.targets))
         self.logger.info('##############################################################################################')
         make_command = copy(self.make_command)
         make_command.extend(self.targets)
@@ -312,7 +312,7 @@ class CMakeCPPBuilder(object):
         self.logger.info('##############################################################################################')
         self.logger.info('# summery')
         self.logger.info('##############################################################################################')
-        self.logger.info('done building at {}'.format(self.get_time_stamp()))
+        self.logger.info('done building at {0}'.format(self.get_time_stamp()))
         
     ##############################################################################################
     # utilities
@@ -335,7 +335,7 @@ class CMakeCPPBuilder(object):
             if attr in something_to_hide:
                 to_show = False
             if to_show:
-                self.logger.debug('  {} : {}'.format(attr, val))
+                self.logger.debug('  {0} : {1}'.format(attr, val))
                 
     def resotre_env(self):
         os.chdir(self.source_dir)
@@ -343,7 +343,7 @@ class CMakeCPPBuilder(object):
             shutil.rmtree(self.build_dir)
         
     def run_shell_command(self, command):
-        self.logger.info('executing {}'.format(command))
+        self.logger.info('executing {0}'.format(command))
         p = subprocess.Popen(command, \
             shell=self.shell_command_shell_flag, env = self.env, \
             stdout = subprocess.PIPE, stderr = subprocess.PIPE
@@ -365,7 +365,7 @@ class CMakeCPPBuilder(object):
             
     def setup_logger(self):
         self.close_log_files()
-        log_file_path = os.path.join(self.source_dir, 'build_{}.log'.format(self.get_time_stamp_word()))
+        log_file_path = os.path.join(self.source_dir, 'build_{0}.log'.format(self.get_time_stamp_word()))
         self.logger.addHandler(logging.FileHandler(log_file_path))
         
     def init_logger(self):
