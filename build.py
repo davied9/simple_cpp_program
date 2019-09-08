@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #-*-encoding:utf-8-*-
 from __future__ import print_function
-import os, sys, shutil, subprocess, logging, time, re, platform
+import os, sys, shutil, subprocess, logging, time, re, platform, traceback
 from datetime import datetime
 from copy import copy
 
@@ -18,9 +18,7 @@ class ASimpleNameSpace(object):
 
 class CMakeCPPBuilder(object):
     def __init__(self):
-        self.logger = logging.getLogger("CMakeCPPBuilder")
-        if 0 == len(self.logger.handlers):
-            self.logger.addHandler(logging.StreamHandler())
+        self.init_logger()
         self.shell_command_shell_flag = False
         self.env = os.environ.copy()
         
@@ -41,11 +39,13 @@ class CMakeCPPBuilder(object):
                 self.configure_build_lin()
                 self.start_build_lin()
                 self.resotre_env()
-        except Exception as err:
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # extract most recent Exception info fro sys
             self.logger.info('##############################################################################################')
             self.logger.info('# failed')
             self.logger.info('##############################################################################################')
-            self.logger.error('[ERROR] failed building {} due to "{}"'.format(self.source_dir, err))
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=self.logger)
+            self.logger.error('[ERROR] failed building {} due to error above'.format(self.source_dir))
             self.logger.error('see more in log file {}'.format(self.logger.handlers[1].stream.name))
             self.logger.error('exit at {}'.format(self.get_time_stamp()))
             
@@ -346,6 +346,9 @@ class CMakeCPPBuilder(object):
             stdout = subprocess.PIPE, stderr = subprocess.PIPE
         )
         stdout, stderr = p.communicate()
+        if platform.python_version().startswith('3'):
+            stdout = stdout.decode()
+            stderr = stderr.decode()
         self.logger.info(stdout)
         self.logger.error(stderr)
         return stdout, stderr
@@ -361,6 +364,14 @@ class CMakeCPPBuilder(object):
         self.close_log_files()
         log_file_path = os.path.join(self.source_dir, 'build_{}.log'.format(self.get_time_stamp_word()))
         self.logger.addHandler(logging.FileHandler(log_file_path))
+        
+    def init_logger(self):
+        self.logger = logging.getLogger("CMakeCPPBuilder")
+        # add stream handler
+        if 0 == len(self.logger.handlers):
+            self.logger.addHandler(logging.StreamHandler())
+        # add write function for print traceback
+        self.logger.write = self.logger.error
         
     def get_time_stamp(self):
         return datetime.fromtimestamp(time.time()).strftime('%Y/%m/%d_%H:%M:%S')
