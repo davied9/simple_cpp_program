@@ -19,23 +19,21 @@ class ASimpleNameSpace(object):
 class CMakeCPPBuilder(object):
     def __init__(self):
         self.init_logger()
-        self.shell_command_shell_flag = False
         self.env = os.environ.copy()
         
-    def start(self, source_dir = os.getcwd(), args = None):
+    def start(self, args = None):
         '''
         main entry for build
         '''
-        self.source_dir = source_dir
-        self.setup_logger()
         try:
             self.parse_args(args = args)
-            self.build_platform = platform.system()
-            if 'Windows' == self.build_platform:
+            self.setup_logger()
+            self.check_build_environment()
+            if 'Windows' == platform.system():
                 self.configure_build_win()
                 self.start_build_win()
                 self.resotre_env()
-            elif 'Linux' == self.build_platform:
+            elif 'Linux' == platform.system():
                 self.configure_build_lin()
                 self.start_build_lin()
                 self.resotre_env()
@@ -53,6 +51,17 @@ class CMakeCPPBuilder(object):
         from argparse import ArgumentParser
         from argparse import RawTextHelpFormatter
 
+        # prepare default configurations
+        if "Windows" == platform.system():
+            self.build_tool = 'Visual Studio'
+            self.build_dir = 'build_win'
+        elif "Linux" == platform.system():
+            self.build_tool = 'make'
+            self.build_dir = 'build_lin'
+        else:
+            self.logger.error('[ERROR] build platform system {0} not support yet'.format(self.build_platform))
+            raise Exception('build platform {0} not support yet'.format(self.build_platform))
+        
         # help description
         parser = ArgumentParser(
             prog=__file__,
@@ -60,43 +69,71 @@ class CMakeCPPBuilder(object):
             description='build CXX program with cmake + ninja/nmake/msbuild/make in win32/linux',
             epilog='''
 [example]
-    {0} install
-    {0} all install
+    {0}                     # build with default setttings
+    {0} install --verbose   # build install target with verbose log
 '''.format(__file__))
 
         # version info
-        parser.add_argument('--version', '-v', help='version', action='version', version='0.1.0')
-
-        # arguments
-        parser.add_argument('--verbose', '-vv', help='increase log verbose level', default=False, action='store_true')
-        parser.add_argument('--debug', '--Debug', help='build Debug target', default=False, action='store_true')
-        parser.add_argument('--release-with-debug-info', '--relwithdebinfo', '--RelWithDebInfo',  help='build RelWithDebInfo target', default=False, action='store_true')
-        parser.add_argument('--release-minimum-size', '--relminsize', '--RelMinSize', help='build RelMinSize target', default=False, action='store_true')
-        parser.add_argument('--no-clean', help='do not clean build directory after build is done, if you need to clean target, pass clean as a target', default=False, action='store_true')
-        parser.add_argument('--rebuild', help='clean build directory before start build', default=False, action='store_true')
-        parser.add_argument('--docker-toolchain-image', help='build with docker toolchain, specify corresponding docker image of toolchain', default=None)
+        parser.add_argument('-v', '--version', help='version', action='version', version='0.1.0')
+        
+        # common
+        parser.add_argument('-vv', '--verbose', help='increase log verbose level', default=False, action='store_true')
+        parser.add_argument('-d', '--Debug', help='build Debug target', default=False, action='store_true')
+        parser.add_argument('-R', '--RelWithDebInfo', help='build RelWithDebInfo target', default=False, action='store_true')
+        parser.add_argument('-r', '--RelMinSize', help='build RelMinSize target', default=False, action='store_true')
+        parser.add_argument('-c', '--clean', help='''clean build directory after build is done,
+if you need to clean target, pass clean as a target''', default=False, action='store_true')
+        parser.add_argument('-C', '--rebuild', help='clean build directory before start build', default=False, action='store_true')
+        parser.add_argument('-D', '--build-with-docker', help='''build with docker toolchain container''', default=False, action='store_true')
+        parser.add_argument('-I', '--docker-toolchain-image', help='''docker image of build toolchain,
+default is davied9/dpc_build_toolchain_centos:latest''', default='davied9/dpc_build_toolchain_centos:latest')
+        parser.add_argument('-t', '--build-tool', help='''build toot, the target cmake generate for,
+default Windows build tool is Visual Studio,
+default Linux build tool is GNU make''', default=self.build_tool)
+        parser.add_argument('-s', '--source-directory', help='source directory, where CMakeLists.txt lies', default=os.getcwd())
+        parser.add_argument('-w', '--build-directory', help='''build directory, which will be create and used 
+as work directory alongside CMakeLists.txt lies''', default=self.build_dir)
         parser.add_argument('targets', help='tagets to build', default=[], nargs='*')
+        # linux
+        # windows
+        parser.add_argument('-M', '--msvc-version', help='''Microsoft Visual Studio Version
+Visual Studio 2019 [specify 2019 or 16 as MSVC_VERSION]
+Visual Studio 2017 [specify 2017 or 15 as MSVC_VERSION]
+Visual Studio 2015 [specify 2015 or 14 as MSVC_VERSION]
+Visual Studio 2013 [specify 2013 or 12 as MSVC_VERSION]
+Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
+''', default=2012)
         
         # parse
         arguments = parser.parse_args(args=args)
         
         # validate
         n_build_type_flags = 0
-        n_build_type_flags += 1 if arguments.debug else 0
-        n_build_type_flags += 1 if arguments.release_with_debug_info else 0
-        n_build_type_flags += 1 if arguments.release_minimum_size else 0
+        n_build_type_flags += 1 if arguments.Debug else 0
+        n_build_type_flags += 1 if arguments.RelWithDebInfo else 0
+        n_build_type_flags += 1 if arguments.RelMinSize else 0
         if n_build_type_flags > 1:
             raise Exception('too many build flags are set')
         
         # apply configurations
         self.targets = arguments.targets
         self.logger.level = logging.DEBUG if arguments.verbose else logging.INFO
-        self.build_type = 'Debug' if arguments.debug else 'Release' # Release Debug RelWithDebInfo RelMinSize
-        self.build_type = 'RelWithDebInfo' if arguments.release_with_debug_info else self.build_type
-        self.build_type = 'RelMinSize' if arguments.release_minimum_size else self.build_type
+        self.build_type = 'Release' # Release Debug RelWithDebInfo RelMinSize
+        if arguments.Debug:
+            self.build_type = 'Debug'
+        elif arguments.RelWithDebInfo:
+            self.build_type = 'RelWithDebInfo'
+        elif arguments.RelMinSize:
+            self.build_type = 'RelMinSize'
         self.clean_before_build = arguments.rebuild # cleanup build directory before start build
-        self.clean_after_build = not arguments.no_clean # cleanup build directory after done build
+        self.clean_after_build = arguments.clean # cleanup build directory after done build
+        self.build_with_docker = arguments.build_with_docker
         self.docker_toolchain_image = arguments.docker_toolchain_image # if specified, docker toolchain will be used as build toolchain
+        self.build_tool = arguments.build_tool
+        self.source_dir = arguments.source_directory
+        self.build_dir = os.path.join(self.source_dir, arguments.build_directory)
+        self.msvc_version = int(arguments.msvc_version)
+        self.target_architecture = 'x64'
         
     ##############################################################################################
     # windows build procedure
@@ -105,40 +142,36 @@ class CMakeCPPBuilder(object):
         '''
         entry for configuration build for windows, make changes if needed
         '''
-        self.host_architecture = platform.machine()
-        self.target_architecture = 'x64' # 'x64' 'ARM'
-        self.shell_command_shell_flag = True
-        self.msvc_ver = 2019 # 2012 2015 2017 2019
         self.msvc_community = True
-        self.build_tool = 'Visual Studio' # 'Visual Studio' 'ninja' 'nmake'
-        self.build_dir = os.path.join(self.source_dir, 'build_win')
-        self.build_method = 'Build' # 'Rebuild' 'Build'
-        self.path_split = ';'
         if 'Visual Studio' == self.build_tool:
             # determine architercture parameter for vcvarsall.bat script && cmake -G option, we do not support x86 host architecture
             # see more info at https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019
             if 'x64' == self.target_architecture:
-                cmake_g_arch_postfix = 'Win64'
-                if 'AMD64' == self.host_architecture:
+                cmake_gen_arch_postfix = 'Win64'
+                if 'AMD64' == platform.machine():
                     vcvarsall_arch_param = 'x64'
                 else:
-                    self.logger.error('[ERROR] host architecture {0} not supported yet'.format(self.target_architecture))
+                    self.logger.error('[ERROR] host architecture {0} not supported'.format(self.target_architecture))
                     raise Exception('host architecture not supported')
             else:
-                self.logger.error('[ERROR] target_architecture {0} not supported yet'.format(self.target_architecture))
+                self.logger.error('[ERROR] target_architecture {0} not supported'.format(self.target_architecture))
                 raise Exception('target architecture not supported')
             # build configurations
-            if self.msvc_ver == 2019:
+            if self.msvc_version == 2019 or self.msvc_version == 16:
                 self.cmake_gen_target = 'Visual Studio 16 2019'
-                self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
-                self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, '&&', 'msbuild', solution_name, '-t:'+self.build_method, '-p:Configuration='+self.build_type]
-            elif self.msvc_ver == 2017:
-                self.cmake_gen_target = 'Visual Studio 15 2017' + ' ' + cmake_g_arch_postfix
-                self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
-                self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, '&&', 'msbuild', solution_name, '-t:'+self.build_method, '-p:Configuration='+self.build_type]
+            elif self.msvc_version == 2017 or self.msvc_version == 15:
+                self.cmake_gen_target = 'Visual Studio 15 2017 ' + cmake_gen_arch_postfix
+            elif self.msvc_version == 2015 or self.msvc_version == 14:
+                self.cmake_gen_target = 'Visual Studio 14 2015 ' + cmake_gen_arch_postfix
+            elif self.msvc_version == 2013 or self.msvc_version == 12:
+                self.cmake_gen_target = 'Visual Studio 12 2013 ' + cmake_gen_arch_postfix
+            elif self.msvc_version == 2012 or self.msvc_version == 11:
+                self.cmake_gen_target = 'Visual Studio 11 2012 ' + cmake_gen_arch_postfix
             else:
-                self.logger.error('[ERROR] Visual Studio {0} not supported yet'.format(self.msvc_ver))
-                raise Exception('Visual Studio {0} not supported'.format(self.msvc_ver))
+                self.logger.error('[ERROR] Visual Studio {0} not supported'.format(self.msvc_version))
+                raise Exception('Visual Studio {0} not supported'.format(self.msvc_version))
+            self.cmake_command = ['cmake', '-G', self.cmake_gen_target, self.source_dir]
+            self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, '&&', 'msbuild', solution_name, '-p:Configuration='+self.build_type]
         else:
             self.logger.error('[ERROR] unknown build tool {0}'.format(self.build_tool))
             raise Exception('build tool {0} not supported'.format(self.build_tool))
@@ -261,10 +294,6 @@ class CMakeCPPBuilder(object):
         '''
         entry for configuration build for linux, make changes if needed
         '''
-        self.target_architecture = 'x64'
-        self.shell_command_shell_flag = False
-        self.build_tool = 'make' # 'ninja' 'make'
-        self.build_dir = os.path.join(self.source_dir, 'build_lin')
         if 'ninja' == self.build_tool:
             self.cmake_gen_target = 'Ninja'
             self.cmake_command = ['cmake', '-G', self.cmake_gen_target, '-DCMAKE_BUILD_TYPE='+self.build_type, self.source_dir]
@@ -276,7 +305,6 @@ class CMakeCPPBuilder(object):
         else:
             self.logger.error('[ERROR] unknown build tool {0}'.format(self.build_tool))
             raise Exception('build tool {0} not supported'.format(self.build_tool))
-        self.path_split = ':'
         
     def start_build_lin(self):
         '''
@@ -342,18 +370,24 @@ class CMakeCPPBuilder(object):
         if self.clean_after_build:
             shutil.rmtree(self.build_dir)
         
-    def run_shell_command(self, command):
-        self.logger.info('executing {0}'.format(command))
+    def run_shell_command(self, command, log_info=True):
+        if log_info:
+            self.logger.info('executing {0}'.format(command))
+        if 'Windows' == platform.system():
+            shell = True
+        elif 'Linux' == platform.system():
+            shell = False
         p = subprocess.Popen(command, \
-            shell=self.shell_command_shell_flag, env = self.env, \
+            shell=shell, env = self.env, \
             stdout = subprocess.PIPE, stderr = subprocess.PIPE
         )
         stdout, stderr = p.communicate()
         if platform.python_version().startswith('3'):
             stdout = stdout.decode()
             stderr = stderr.decode()
-        self.logger.info(stdout)
-        self.logger.error(stderr)
+        if log_info:
+            self.logger.info(stdout)
+            self.logger.error(stderr)
         return stdout, stderr
         
     def close_log_files(self):
@@ -383,12 +417,46 @@ class CMakeCPPBuilder(object):
         return datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H-%M-%S')
     
     def add_path_to_env(self, path):
-        self.env['PATH'] = path + self.path_split + self.env['PATH']
+        self.env['PATH'] = path + os.pathsep + self.env['PATH']
 
+    def check_tool(self, tool_name, command):
+        stdout, stderr = self.run_shell_command([command, '--version'], log_info=False)
+        if len(stdout) > 1:
+            data_source = stdout
+        else:
+            data_source = stderr
+        version = None
+        if not version:
+            res = re.findall(r'\d+\.[.\d]+\s\d+\s\(.*\)', data_source, flags=re.IGNORECASE)
+            if len(res) == 1:
+                version = res[0]
+        if not version:
+            res = re.findall(r'\d+\.[.\d]+', data_source, flags=re.IGNORECASE)
+            if len(res) == 1:
+                version = res[0]
+        if not version:
+            self.logger.debug('{0} : not found'.format(tool_name))
+            #self.logger.debug(data_source)
+            #self.logger.debug(res)
+        else:
+            self.logger.debug('{0:8} : {1}'.format(tool_name, res[0]))
     
+    def check_build_environment(self):
+        self.logger.debug('##############################################################################################')
+        self.logger.debug('# checking build environment')
+        self.logger.debug('##############################################################################################')
+        self.logger.debug(platform.platform())
+        self.logger.debug('Python : {0}'.format(platform.python_version()))
+        self.check_tool('CMake', 'cmake')
+        self.check_tool('GNU Make', 'make')
+        self.check_tool('GCC', 'gcc')
+        self.check_tool('CC', 'cc')
+        self.check_tool('g++', 'g++')
+        self.check_tool('c++', 'c++')
+        self.check_tool('Ninja', 'ninja')
         
 def main():
-    CMakeCPPBuilder().start(source_dir = os.getcwd(), args = sys.argv[1:])
+    CMakeCPPBuilder().start(args = sys.argv[1:])
     
     
 if '__main__' == __name__:
