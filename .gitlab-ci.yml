@@ -2,8 +2,17 @@ stages:
     - build
     - test
     
-build:
+build_linux:
     stage: build
+    tags:
+        - build_linux
+    script:
+        - python -m build -vv install
+        
+build_windows:
+    stage: build
+    tags:
+        - build_windows
     script:
         - python -m build -vv install
         
