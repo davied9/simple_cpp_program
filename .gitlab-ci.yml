@@ -1,0 +1,19 @@
+stages:
+    - build
+    - test
+    
+build:
+    stage: build
+    script:
+        - python -m build -vv install
+        
+test:
+    stage: test
+    script:
+        - cd pacages
+        - ./simple_cpp_program
+        
+artifacts:
+    path: packages
+    expired_in: 10 days
+    
