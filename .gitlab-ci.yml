@@ -8,6 +8,10 @@ build_linux:
         - build_linux
     script:
         - python -m build -vv install
+    artifacts:
+        paths:
+            - packages
+        expire_in: 10 day
         
 build_windows:
     stage: build
@@ -15,6 +19,10 @@ build_windows:
         - build_windows
     script:
         - python -m build -vv install
+    artifacts:
+        paths:
+            - packages
+        expire_in: 10 day
         
 test:
     stage: test
@@ -22,8 +30,4 @@ test:
         - cd pacages
         - ./simple_cpp_program
         
-artifacts:
-    paths:
-        - packages
-    expire_in: 10 day
     
