@@ -23,6 +23,7 @@ test:
         - ./simple_cpp_program
         
 artifacts:
-    path: packages
-    expired_in: 10 days
+    paths:
+        - packages
+    expired_in: 10 day
     
