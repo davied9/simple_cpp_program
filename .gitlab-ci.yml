@@ -25,5 +25,5 @@ test:
 artifacts:
     paths:
         - packages
-    expired_in: 10 day
+    expire_in: 10 day
     
