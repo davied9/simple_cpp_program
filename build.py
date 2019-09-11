@@ -457,6 +457,8 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
                     shell=True, env = self.env, universal_newlines = True, \
                     stdout = subprocess.PIPE, stderr = subprocess.PIPE
                 ).communicate()
+                stdout = stdout.replace('\\', '/')
+                stderr = stderr.replace('\\', '/')
             except Exception as err:
                 stdout, stderr = '', '{0}'.format(err)
         elif 'Linux' == platform.system():
