@@ -19,7 +19,7 @@ test_centos:
         - python -m build -vv install
         - ./packages/simple_cpp_program
         
-release:
+release_centos:
     stage: release
     tags:
         - centos6
@@ -30,6 +30,8 @@ release:
         paths:
             - out_packages.tar
         expire_in: 1 hour
+    # only:
+        # - tags
         
 # windows
 build_windows:
@@ -48,7 +50,7 @@ test_windows:
         - .\packages\simple_cpp_program.exe
         
     
-release:
+release_windows:
     stage: release
     tags:
         - windows
@@ -59,3 +61,5 @@ release:
         paths:
             - out_packages.7z
         expire_in: 1 hour
+    # only:
+        # - tags
