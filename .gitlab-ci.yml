@@ -16,6 +16,7 @@ test_centos:
     tags:
         - centos6
     script:
+        - python -m build -vv install
         - ./packages/simple_cpp_program
         
 release:
@@ -23,6 +24,7 @@ release:
     tags:
         - centos6
     script:
+        - python -m build -vv install
         - tar xf out_packages.tar packages
     artifacts:
         paths:
@@ -42,6 +44,7 @@ test_windows:
     tags:
         - windows
     script: # this is running in powershell
+        - python -m build -vv install
         - .\packages\simple_cpp_program.exe
         
     
@@ -50,6 +53,7 @@ release:
     tags:
         - windows
     script:
+        - python -m build -vv install
         - 7z a out_packages.7z packages
     artifacts:
         paths:
