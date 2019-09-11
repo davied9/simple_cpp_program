@@ -452,18 +452,16 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
         if log_info:
             self.logger.info('executing {0}'.format(command))
         if 'Windows' == platform.system():
-            try: # add try block for windows python 2 support
-                stdout, stderr = subprocess.Popen(command, \
-                    shell=True, env = self.env, universal_newlines = True, \
-                    stdout = subprocess.PIPE, stderr = subprocess.PIPE
-                ).communicate()
-            except Exception as err:
-                stdout, stderr = '', '{0}'.format(err)
+            shell = True
         elif 'Linux' == platform.system():
+            shell = False
+        try: # add try block for windows python 2 support
             stdout, stderr = subprocess.Popen(command, \
-                universal_newlines = True, \
+                shell=shell, env = self.env, universal_newlines = True, \
                 stdout = subprocess.PIPE, stderr = subprocess.PIPE
             ).communicate()
+        except Exception as err:
+            stdout, stderr = '', '{0}'.format(err)
         if log_info:
             self.logger.info(stdout)
             self.logger.error(stderr)
