@@ -18,7 +18,7 @@ test_centos:
     tags:
         - centos6
     script:
-        - ./pacages/simple_cpp_program
+        - ./packages/simple_cpp_program
         
 build_windows:
     stage: build
@@ -36,6 +36,6 @@ test_windows:
     tags:
         - windows
     script:
-        - pacages\\simple_cpp_program.exe
+        - packages\\simple_cpp_program.exe
         
     
