@@ -25,7 +25,7 @@ release_centos:
         - centos6
     script:
         - python -m build -vv install
-        - tar xf out_packages.tar packages
+        - tar cf out_packages.tar packages
     artifacts:
         paths:
             - out_packages.tar
@@ -45,9 +45,9 @@ test_windows:
     stage: test
     tags:
         - windows
-    script: # this is running in powershell
+    script: # this is running in cmd
         - python -m build -vv install -M 2012
-        - .\packages\simple_cpp_program.exe
+        - packages\simple_cpp_program.exe
         
     
 release_windows:
