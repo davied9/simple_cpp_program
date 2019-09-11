@@ -440,7 +440,6 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             shutil.rmtree(self.build_dir)
         
     def run_shell_command(self, command, log_info=True):
-        log_info=True
         if log_info:
             self.logger.info('executing {0}'.format(command))
         if 'Windows' == platform.system():
