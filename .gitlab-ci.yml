@@ -2,10 +2,10 @@ stages:
     - build
     - test
     
-build_linux:
+build_centos:
     stage: build
     tags:
-        - build_linux
+        - centos6
     script:
         - python -m build -vv install
     artifacts:
@@ -13,10 +13,17 @@ build_linux:
             - packages
         expire_in: 10 day
         
+test_centos:
+    stage: test
+    tags:
+        - centos6
+    script:
+        - ./pacages/simple_cpp_program
+        
 build_windows:
     stage: build
     tags:
-        - build_windows
+        - windows
     script:
         - python -m build -vv install -M 2012
     artifacts:
@@ -24,10 +31,11 @@ build_windows:
             - packages
         expire_in: 10 day
         
-test:
+test_windows:
     stage: test
+    tags:
+        - windows
     script:
-        - cd pacages
-        - ./simple_cpp_program
+        - pacages\\simple_cpp_program.exe
         
     
