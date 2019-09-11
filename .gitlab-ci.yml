@@ -18,7 +18,7 @@ build_windows:
     tags:
         - build_windows
     script:
-        - python -m build -vv install
+        - python -m build -vv install -M 2012
     artifacts:
         paths:
             - packages
