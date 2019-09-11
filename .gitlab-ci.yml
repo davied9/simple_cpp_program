@@ -12,6 +12,8 @@ build_centos:
         paths:
             - packages
         expire_in: 10 day
+        only:
+            - tags
         
 test_centos:
     stage: test
@@ -30,6 +32,8 @@ build_windows:
         paths:
             - packages
         expire_in: 10 day
+        only:
+            - tags
         
 test_windows:
     stage: test
