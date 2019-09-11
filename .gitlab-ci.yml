@@ -42,7 +42,7 @@ test_windows:
     tags:
         - windows
     script:
-        - packages\\simple_cpp_program.exe
+        - ./packages/simple_cpp_program.exe
         
     
 release:
