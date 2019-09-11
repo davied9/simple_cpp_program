@@ -529,12 +529,13 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
         self.logger.debug(' * ' + platform.platform())
         self.logger.debug(' * {0:8} : {1}'.format('Python', platform.python_version()))
         self.check_tool('CMake', 'cmake')
+        self.check_tool('Git', 'git')
         self.check_tool('GNU Make', 'make')
+        self.check_tool('Ninja', 'ninja')
         self.check_tool('GCC', 'gcc')
         self.check_tool('CC', 'cc')
         self.check_tool('g++', 'g++')
         self.check_tool('c++', 'c++')
-        self.check_tool('Ninja', 'ninja')
         
 def main():
     CMakeCPPBuilder().start(args = sys.argv[1:])
