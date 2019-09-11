@@ -297,14 +297,16 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             self.logger.error('[ERROR] c compiler && cxx compiler not in same dir, is that all right ?')
             raise Exception('c compiler && cxx compiler not in same dir')
         # determine vcvars64 path && add to system path
-        dir, base = os.path.split(self.cxx_compiler)
-        while 'Tools' != base and '' != dir and ':/' != dir[1:]:
-            dir, base = os.path.split(dir)
-        if 'Tools' != base:
-            self.logger.error('[ERROR] Tool dir in cxx_compiler_dir {0} not found, maybe Visual Studio installation path tree changed ?'.format(cxx_compiler_dir))
-            raise Exception('Tool dir in cxx_compiler_dir not found')
-        self.auxilary_tool_dir = dir + '/Auxiliary/Build'
-        self.logger.info(' * Auxilary tool path : {0}'.format(self.auxilary_tool_dir))
+        if self.msvc_version > 2012:
+            dir, base = os.path.split(self.cxx_compiler)
+            while 'Tools' != base and '' != dir and ':/' != dir[1:]:
+                dir, base = os.path.split(dir)
+            if 'Tools' != base:
+                self.logger.error('[ERROR] Tool dir in cxx_compiler_dir {0} not found, maybe Visual Studio installation path tree changed ?'.format(cxx_compiler_dir))
+                raise Exception('Tool dir in cxx_compiler_dir not found')
+            self.auxilary_tool_dir = dir + '/Auxiliary/Build'
+            self.logger.info(' * Auxilary tool path : {0}'.format(self.auxilary_tool_dir))
+            self.add_path_to_env(self.auxilary_tool_dir)
         # guess solution name
         solution_name = None
         # 1 walk through build dir, find only .sln file
@@ -351,7 +353,6 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
                     self.logger.error('[ERROR] target {0} not found in build dir {1}'.format(target, self.build_dir))
                     raise Exception('target {0} not found'.format(target))
         # run make command
-        self.add_path_to_env(self.auxilary_tool_dir)
         for solution_name in self.solution_names:
             self.logger.info('##############################################################################################')
             self.logger.info('# building target {0}'.format(solution_name))
@@ -448,21 +449,21 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             shutil.rmtree(self.build_dir)
         
     def run_shell_command(self, command, log_info=True):
-        log_info=True
         if log_info:
             self.logger.info('executing {0}'.format(command))
         if 'Windows' == platform.system():
-            shell = True
+            try: # add try block for windows python 2 support
+                stdout, stderr = subprocess.Popen(command, \
+                    shell=True, env = self.env, universal_newlines = True, \
+                    stdout = subprocess.PIPE, stderr = subprocess.PIPE
+                ).communicate()
+            except Exception as err:
+                stdout, stderr = '', '{0}'.format(err)
         elif 'Linux' == platform.system():
-            shell = False
-        try: # add try block for windows python 2 support
             stdout, stderr = subprocess.Popen(command, \
-                shell=shell, env = self.env, universal_newlines = True, \
+                universal_newlines = True, \
                 stdout = subprocess.PIPE, stderr = subprocess.PIPE
             ).communicate()
-        except Exception as err:
-            stdout = ''
-            stderr = '{0}'.format(err)
         if log_info:
             self.logger.info(stdout)
             self.logger.error(stderr)
