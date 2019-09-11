@@ -41,8 +41,8 @@ test_windows:
     stage: test
     tags:
         - windows
-    script:
-        - ./packages/simple_cpp_program.exe
+    script: # this is running in powershell
+        - .\packages\simple_cpp_program.exe
         
     
 release:
