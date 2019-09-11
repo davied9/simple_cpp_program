@@ -510,6 +510,10 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             if len(res) == 1:
                 version = res[0]
         if not version:
+            res = re.findall(r'\d+(\.\d+){1,}([\.\-]?\w+|[\.\-]\d+)+', data_source, flags=re.IGNORECASE)
+            if len(res) == 1:
+                version = res[0]
+        if not version:
             res = re.findall(r'\d+\.[.\d]+', data_source, flags=re.IGNORECASE)
             if len(res) == 1:
                 version = res[0]
