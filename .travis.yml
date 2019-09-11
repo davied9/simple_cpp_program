@@ -1,8 +1,4 @@
 language: python
-stages:
-    - build
-build:
-    stage: build
-    script:
-        - ./build.py --vv install
+script:
+    - ./build.py --vv install
         
