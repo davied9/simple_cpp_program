@@ -1,4 +1,4 @@
 language: python
 script:
-    - ./build.py --vv install
+    - python -m build --vv install
         
