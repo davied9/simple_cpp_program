@@ -440,20 +440,24 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             shutil.rmtree(self.build_dir)
         
     def run_shell_command(self, command, log_info=True):
+        log_info=True
         if log_info:
             self.logger.info('executing {0}'.format(command))
         if 'Windows' == platform.system():
             shell = True
         elif 'Linux' == platform.system():
             shell = False
-        p = subprocess.Popen(command, \
-            shell=shell, env = self.env, \
-            stdout = subprocess.PIPE, stderr = subprocess.PIPE
-        )
-        stdout, stderr = p.communicate()
+        try: # add try block for windows python 2 support
+            stdout, stderr = subprocess.Popen(command, \
+                shell=shell, env = self.env, \
+                stdout = subprocess.PIPE, stderr = subprocess.PIPE
+            ).communicate()
+        except Exception as err:
+            stdout = ''
+            stderr = '{0}'.format(err)
         if platform.python_version().startswith('3'):
-            stdout = stdout.decode()
-            stderr = stderr.decode()
+            stdout = stdout.decode(sys.stdout.encoding)
+            stderr = stderr.decode(sys.stdout.encoding)
         stdout = stdout.replace('\r\n', '\n') # remove duplicated lines
         stderr = stderr.replace('\r\n', '\n') # remove duplicated lines
         if log_info:
