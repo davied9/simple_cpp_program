@@ -229,6 +229,8 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             # build configurations
             if self.msvc_version == 2019 or self.msvc_version == 16:
                 self.cmake_gen_target = 'Visual Studio 16 2019'
+                self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, \
+                    '&&', 'MSBuild.exe', solution_name, '-p:Configuration={0};Platform={1}'.format(self.build_type, self.target_architecture)]
             elif self.msvc_version == 2017 or self.msvc_version == 15:
                 self.cmake_gen_target = 'Visual Studio 15 2017 ' + cmake_gen_arch_postfix
                 self.make_command_gen = lambda solution_name : ['vcvarsall.bat', vcvarsall_arch_param, \
