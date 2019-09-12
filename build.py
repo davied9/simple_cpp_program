@@ -506,15 +506,19 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             data_source = stderr
         version = None
         if not version:
-            res = re.findall(r'\d+\.[.\d]+\s\d+\s\(.*\)', data_source, flags=re.IGNORECASE)
+            res = re.findall(r'\d+(?:\.\d+)+\s\d+\s\(Red\sHat\s[\.\-\w]+\)', data_source, flags=re.IGNORECASE) # redhat e.g. gcc (GCC) 4.9.2 20150212 (Red Hat 4.9.2-6)
             if len(res) == 1:
                 version = res[0]
         if not version:
-            res = re.findall(r'\d+(\.\d+){1,}([\.\-]?\w+|[\.\-]\d+)+', data_source, flags=re.IGNORECASE)
+            res = re.findall(r'\(Ubuntu\s[\.\-\~\w]+\)\s\d+(?:\.\d+)+\s\d+', data_source, flags=re.IGNORECASE) # ubuntu e.g. gcc (Ubuntu 5.4.0-6ubuntu1~16.04.11) 5.4.0 20160609
             if len(res) == 1:
                 version = res[0]
         if not version:
-            res = re.findall(r'\d+\.[.\d]+', data_source, flags=re.IGNORECASE)
+            res = re.findall(r'\d+(?:\.\d+)+(?:[\.\-]?\w+)+', data_source, flags=re.IGNORECASE) # e.g. git version 1.7.windows.1
+            if len(res) == 1:
+                version = res[0]
+        if not version:
+            res = re.findall(r'\d+(?:\.\d+)+', data_source, flags=re.IGNORECASE) # common version , e.g. 3.1.1
             if len(res) == 1:
                 version = res[0]
         if not version:
@@ -524,7 +528,7 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
         else:
             self.logger.debug(' * {0:8} : {1}'.format(tool_name, res[0]))
         self.full_version_check_log += '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@{0}@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'.format(tool_name.center(8))
-        self.full_version_check_log += data_source
+        self.full_version_check_log += data_source + '\n'
     
     def check_build_environment(self):
         self.logger.debug('##############################################################################################')
