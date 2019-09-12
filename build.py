@@ -424,7 +424,7 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
     # utilities
     ##############################################################################################
     def log_build_configuration(self):
-        something_to_hide = ['logger']
+        something_to_hide = ['logger', 'full_version_check_log']
         something_to_show = ['make_command_gen']
         
         self.logger.debug('##############################################################################################')
@@ -523,7 +523,7 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
             #self.logger.debug(res)
         else:
             self.logger.debug(' * {0:8} : {1}'.format(tool_name, res[0]))
-        self.full_version_check_log += '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@{0}@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@n'.format(tool_name.center(8))
+        self.full_version_check_log += '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@{0}@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'.format(tool_name.center(8))
         self.full_version_check_log += data_source
     
     def check_build_environment(self):
