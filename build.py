@@ -345,11 +345,11 @@ Visual Studio 2012 [specify 2012 or 11 as MSVC_VERSION]
                 self.solution_names.append(solution_name)
                 targets.remove('all')
             for target in targets:
-                if os.path.exists(target + '.vcproj'):
-                    self.solution_names.append(target + '.vcproj')
-                    self.logger.info('Solution located {0}'.format(self.solution_names[-1]))
-                elif os.path.exists(target + '.vcxproj'):
+                if os.path.exists(target + '.vcxproj'): # prefer cpp more
                     self.solution_names.append(target + '.vcxproj')
+                    self.logger.info('Solution located {0}'.format(self.solution_names[-1]))
+                elif os.path.exists(target + '.vcproj'):
+                    self.solution_names.append(target + '.vcproj')
                     self.logger.info('Solution located {0}'.format(self.solution_names[-1]))
                 else:
                     self.logger.error('[ERROR] target {0} not found in build dir {1}'.format(target, self.build_dir))
